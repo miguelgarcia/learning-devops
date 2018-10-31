@@ -1,0 +1,45 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: db-deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:5.7
+        args:
+          - "--ignore-db-dir=lost+found"
+        ports:
+        - name: mysql-port
+          containerPort: 3306
+        env:
+          - name: MYSQL_ROOT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: wp-secrets
+                key: db-password
+        volumeMounts:
+        - mountPath: "/var/lib/mysql"
+          name: mysql-storage
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: db-storage
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+spec:
+  ports:
+  - port: 3306
+    protocol: TCP
+  selector:
+    app: db
+  type: NodePort
